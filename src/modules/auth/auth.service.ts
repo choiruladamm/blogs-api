@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database';
+import { ConflictError } from '../../errors/conflict-error';
 import { RegisterInput } from './auth.validator';
 import bcrypt from 'bcryptjs';
 
@@ -12,7 +13,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new Error('Email already exists');
+      throw new ConflictError('Email already exists');
     }
 
     // hash password
