@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
-import { registerSchema } from './auth.validator';
+import { loginSchema, registerSchema } from './auth.validator';
+import { successResponse } from '../../utils/response';
 
 const router = Router();
 
@@ -70,10 +71,79 @@ router.post(
 
       const user = await AuthService.register(validatedData);
 
-      res.status(201).json({
-        message: 'User registered successfully',
-        data: user,
-      });
+      res
+        .status(201)
+        .json(successResponse('User registered successfully', user));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login a user
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 example: securePass123
+ *     responses:
+ *       200:
+ *         description: Successful login
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User logged in successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                       example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *       401:
+ *         description: Unauthorized - Invalid credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Invalid credentials
+ *       500:
+ *         description: Internal server error
+ */
+router.post(
+  '/login',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const validatedData = loginSchema.parse(req.body);
+
+      const result = await AuthService.login(validatedData);
+
+      res
+        .status(200)
+        .json(successResponse('User logged in successfully', result));
     } catch (error) {
       next(error);
     }

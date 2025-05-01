@@ -1,7 +1,9 @@
+import bcrypt from 'bcryptjs';
 import { prisma } from '../../config/database';
 import { ConflictError } from '../../errors/conflict-error';
-import { RegisterInput } from './auth.validator';
-import bcrypt from 'bcryptjs';
+import { UnauthorizedError } from '../../errors/unauthorized-error';
+import { signToken } from '../../utils/jwt';
+import { LoginInput, RegisterInput } from './auth.validator';
 
 export class AuthService {
   static async register(data: RegisterInput) {
@@ -32,5 +34,31 @@ export class AuthService {
     const { password: _, ...userWithoutPassword } = user;
 
     return userWithoutPassword;
+  }
+
+  static async login(data: LoginInput) {
+    const { email, password } = data;
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new UnauthorizedError('Invalid credentials');
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordCorrect) {
+      throw new UnauthorizedError('Invalid credentials');
+    }
+
+    const token = signToken({
+      userId: user.id,
+    });
+
+    return {
+      accessToken: token,
+    };
   }
 }
